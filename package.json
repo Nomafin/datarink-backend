@@ -1,0 +1,15 @@
+{
+	"name": "sample-express-server",
+	"version": "1.0.0",
+	"description": "Sample Express API server",
+	"main": "server.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/kevkan/sample-express-server"
+	},
+	"author": "kevkan",
+	"license": "ISC",
+	"dependencies": {
+	"express": "^4.15.2"
+	}
+}
