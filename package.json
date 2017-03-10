@@ -1,15 +1,23 @@
 {
-	"name": "sample-express-server",
-	"version": "1.0.0",
-	"description": "Sample Express API server",
-	"main": "server.js",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/kevkan/sample-express-server"
-	},
-	"author": "kevkan",
-	"license": "ISC",
-	"dependencies": {
-	"express": "^4.15.2"
-	}
+  "name": "sample-express-server",
+  "version": "1.0.0",
+  "description": "Sample Express API server",
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kevkan/sample-express-server"
+  },
+  "author": "kevkan",
+  "license": "ISC",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint server.js; exit 0;"
+  },
+  "dependencies": {
+    "express": "^4.15.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.17.1",
+    "eslint-config-airbnb-base": "^11.1.1",
+    "eslint-plugin-import": "^2.2.0"
+  }
 }

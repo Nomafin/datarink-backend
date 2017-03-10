@@ -1,19 +1,18 @@
-'use strict'
+const express = require('express');
 
-var express = require('express');
-var server = express();
+const server = express();
+const port = 5000;
 
 // Route
-server.get("/api", function(req, res) {
-	return res.status(200).send({
-		data: "Hello from the back-end!"
-	});
+server.get('/api', (req, res) => {
+  const resObj = {
+    data: 'Hello from the back-end!',
+  };
+  return res.status(200).send(resObj);
 });
 
-// Start listening for requests
-server.listen(5000, function(error) {
-	if (error) {
-		throw error;
-	}
-	console.log('Listening on ' + 5000);
+// Listen for requests
+server.listen(port, (error) => {
+  if (error) throw error;
+  console.log(`Listening on ${port}`);
 });
