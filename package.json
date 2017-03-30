@@ -13,7 +13,8 @@
     "lint": "./node_modules/.bin/eslint server.js; exit 0;"
   },
   "dependencies": {
-    "express": "^4.15.2"
+    "express": "^4.15.2",
+    "pg": "^6.1.5"
   },
   "devDependencies": {
     "eslint": "^3.17.1",
