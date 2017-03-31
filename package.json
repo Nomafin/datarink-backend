@@ -10,7 +10,7 @@
   "author": "kevkan",
   "license": "ISC",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint server.js; exit 0;"
+    "lint": "./node_modules/.bin/eslint *.js; exit 0;"
   },
   "dependencies": {
     "express": "^4.15.2",

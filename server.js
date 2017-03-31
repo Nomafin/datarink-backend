@@ -1,24 +1,21 @@
 const express = require('express');
-const db = require('./db.js');
+const pool = require('./db');
 
 const server = express();
 const port = 5000;
 
-// Simple route
-server.get('/api/hello', (req, res) => {
-  const resObj = {
-    data: 'Hello from the back-end!',
-  };
-  return res.status(200).send(resObj);
-});
-
 // Route that queries database
-server.get('/api/games', (req, res) => {
-  const query = 'SELECT * FROM game_results';
-  db.query(query, [], (err, rows) => {
-    if (err) { return res.status(500).send(err); }
-    return res.status(200).send(rows);
-  });
+server.get('/api', (req, res) => {
+  const jsonResult = {};
+  pool.query('SELECT * FROM game_results WHERE game_id = 20001', [])
+    .then((result) => {
+      jsonResult.game1 = result.rows;
+      return pool.query('SELECT * FROM game_results WHERE game_id = 20002', []);
+    })
+    .then((result) => {
+      jsonResult.game2 = result.rows;
+      return res.status(200).send(jsonResult);
+    });
 });
 
 // Listen for requests
