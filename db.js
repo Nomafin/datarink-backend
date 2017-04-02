@@ -8,8 +8,6 @@ const config = require('./config');
 const pg = require('pg');
 const url = require('url');
 
-const WORKERS = 1;
-
 // By default, node-postgres interprets incoming timestamps in the local timezone
 // Force node-postgres to interpret the incoming timestamps without any offsets,
 // since our queries will select timestamps in the desired timezone
@@ -26,7 +24,7 @@ const pgConfig = {
   port: params.port,
   database: params.pathname.split('/')[1],
   ssl: true,
-  max: 16 / WORKERS,
+  max: 10,
   idleTimeoutMillis: 30000,
 };
 
