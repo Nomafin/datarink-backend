@@ -4,7 +4,7 @@
 // 2. Exporting a method for passing queries to the pool
 //
 
-const dbConfig = require('./db-config.json');
+const config = require('./config');
 const pg = require('pg');
 const url = require('url');
 
@@ -17,7 +17,7 @@ pg.types.setTypeParser(1114, stringValue => new Date(Date.parse(`${stringValue}+
 
 // Configure and initialize the Postgres connection pool
 // Get the DATABASE_URL config var and parse it into its components
-const params = url.parse(dbConfig.DATABASE_URL);
+const params = url.parse(config.DATABASE_URL);
 const authParams = params.auth.split(':');
 const pgConfig = {
   user: authParams[0],
@@ -33,6 +33,6 @@ const pgConfig = {
 // Initialize a global connection pool
 const pool = new pg.Pool(pgConfig);
 
-// Export the query method for passing queries to the pool
-// 'values' is an array of values for parameterized queries
+// Export query method for passing queries to the pool
+// `values` is an array of values for parameterized queries
 module.exports.query = (text, values) => pool.query(text, values);
