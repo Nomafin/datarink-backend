@@ -1,21 +1,22 @@
 const express = require('express');
-const pool = require('../db');
+const player = require('./player-model');
 
 const router = express.Router();
 
-// Route that queries database
+// Route that analyzes data and returns response
 router.get('/', (req, res) => {
-  const jsonResult = {};
-  pool.query('SELECT * FROM game_results WHERE game_id = 20001', [])
-    .then((result) => {
-      jsonResult.game1 = result.rows;
-      return pool.query('SELECT * FROM game_results WHERE game_id = 20002', []);
+  const results = [];
+  player.findPlayer(20001)
+    .then(result => {
+      results.push(result);
+      return player.findPlayer(20002);
     })
-    .then((result) => {
-      jsonResult.game2 = result.rows;
-      return res.status(200).send(jsonResult);
+    .then(result => {
+      results.push(result);
+      // Analyze results
+      // ...
+      return res.status(200).send(results);
     });
 });
 
-// Export router
 module.exports = router;
