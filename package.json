@@ -10,11 +10,12 @@
   "author": "kevkan",
   "license": "ISC",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint *.js; exit 0;"
+    "lint": "./node_modules/.bin/eslint . --ext .js; exit 0;"
   },
   "dependencies": {
     "express": "^4.15.2",
-    "pg": "^6.1.5"
+    "pg": "^6.1.5",
+    "request": "^2.81.0"
   },
   "devDependencies": {
     "eslint": "^3.17.1",
