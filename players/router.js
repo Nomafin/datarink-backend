@@ -7,11 +7,11 @@ const router = express.Router();
 router.get('/', (req, res) => {
   const results = [];
   player.findPlayer(20001)
-    .then(result => {
+    .then((result) => {
       results.push(result);
       return player.findPlayer(20002);
     })
-    .then(result => {
+    .then((result) => {
       results.push(result);
       // Analyze results
       // ...

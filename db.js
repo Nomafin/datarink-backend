@@ -1,8 +1,6 @@
-//
 // db.js centralizes access to the database by:
 // 1. Creating a global pool of database clients
 // 2. Exporting a method for passing queries to the pool
-//
 
 const config = require('./config');
 const pg = require('pg');
