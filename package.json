@@ -1,11 +1,11 @@
 {
-  "name": "sample-express-server",
+  "name": "datarink-backend",
   "version": "1.0.0",
-  "description": "Sample Express API server",
+  "description": "Backend for datarink",
   "main": "server.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kevkan/sample-express-server"
+    "url": "git+https://github.com/kevkan/datarink-backend"
   },
   "author": "kevkan",
   "license": "ISC",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "express": "^4.15.2",
+    "knex": "^0.12.9",
     "pg": "^6.1.5",
     "request": "^2.81.0"
   },

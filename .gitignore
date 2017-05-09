@@ -1,4 +1,6 @@
 .DS_Store
+.vscode
 node_modules
+scripts/raw-data
 npm-debug.log
 config.js

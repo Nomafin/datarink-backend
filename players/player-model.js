@@ -1,12 +1,12 @@
 // Query database and provide data to the player routes for analysis
 
-const pool = require('../db');
+const db = require('../db');
 
 module.exports.findPlayer = function findPlayer(pid) {
-  return pool.query('SELECT * FROM game_results WHERE game_id = $1', [pid])
-    .then((result) => {
+  return db.knex.select('name').from('test')
+    .then((rows) => {
       // Format and structure query results
-      console.log('Formatting and structuring querying results...');
-      return result.rows;
+      console.log(`Formatting and structuring querying results for ${pid}`);
+      return rows;
     });
 };
