@@ -61,6 +61,22 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     return players;
   }
 
+  // Mapping html play types -> json play types
+  const typeMap = {
+    pstr: 'period_start',
+    pend: 'period_end',
+    gend: 'game_end',
+    fac: 'faceoff',
+    stop: 'stop',
+    goal: 'goal',
+    shot: 'shot',
+    block: 'blocked_shot',
+    miss: 'missed_shot',
+    take: 'takeaway',
+    give: 'giveaway',
+    hit: 'hit',
+  };
+
   // For each tr element, add a play object to htmlPlays
   const htmlPlays = [];
   const trs = $('tr.evenColor');
@@ -70,19 +86,71 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       id: parseInt($(tds[0]).text(), 10),
       period: parseInt($(tds[1]).text(), 10),
       time: parseTime($(tds[3]).html()),
-      type: $(tds[4]).text().toLowerCase(),
-      description: $(tds[5]).html().split('<br>').join(' '),
+      type: typeMap[$(tds[4]).text().toLowerCase()],
       aOnIce: getOnIcePlayers($(tds[6]).find('font')),
       hOnIce: getOnIcePlayers($(tds[7]).find('font')),
+
+      /**
+       * Clean up whitespace
+       * cheerio turns &nbsp; into &#xA0;
+       * replace multiple spaces with a single space
+       */
+      desc: $(tds[5]).html()
+        .split('<br>').join(' ')
+        .split('&#xA0;').join(' ')
+        .replace(/  +/g, ' ')
+        .trim(),
     });
   });
 
-  // Get the team abbreviations from the '### On Ice' table headings
+  // Get [away, home] team abbreviations from the '### On Ice' table headings
   const tds = $('td.heading.bborder[width="10%"]');
-  const teams = [
-    $(tds[0]).text().split(' On Ice')[0].toLowerCase(),
-    $(tds[1]).text().split(' On Ice')[0].toLowerCase(),
-  ];
+  const teams = [tds[0], tds[1]].map(td => $(td).text().split(' On Ice')[0].toLowerCase());
+
+  /**
+   * Attribute event to a team
+   * Don't make adjustments for blocked shots - scrape-games.js will do it
+   */
+  htmlPlays.forEach((ev) => {
+    const firstWord = ev.desc.split(' ')[0].toLowerCase();
+    if (teams.includes(firstWord)) {
+      ev.team = firstWord;
+    }
+  });
+
+  // Append zones to each event
+  htmlPlays.forEach((ev) => {
+    let zone;
+    if (ev.desc.includes('Def. Zone')) {
+      zone = 'd';
+    } else if (ev.desc.includes('Off. Zone')) {
+      zone = 'o';
+    } else if (ev.desc.includes('Neu. Zone')) {
+      zone = 'n';
+    }
+
+    if (!zone || !ev.hasOwnProperty('team')) {
+      return;
+    }
+
+    const flipZone = {
+      o: 'd',
+      d: 'o',
+      n: 'n',
+    };
+    if (ev.team === teams[0]) {
+      ev.zones = [zone, flipZone[zone]];
+    } else if (ev.team === teams[1]) {
+      ev.zones = [flipZone[zone], zone];
+    }
+
+    // html plays list the zone from the blocker's perspective - flip this
+    if (ev.type === 'block') {
+      ev.zones.reverse();
+    }
+  });
+
+  console.log(htmlPlays);
 }
 
 Promise.all(promises)
