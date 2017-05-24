@@ -149,7 +149,6 @@ function insertToDb(tblData) {
 
   // Set the conditions for deleting this game's rows from a table
   const delConditions = {
-    season: tblData.games[0].season,
     game_id: tblData.games[0].game_id,
   };
 
@@ -165,25 +164,25 @@ function insertToDb(tblData) {
     SET abbreviation = EXCLUDED.abbreviation, \
       team_name = EXCLUDED.team_name;`;
 
-  return knex('games').where(delConditions).del()
+  return knex.raw(playersQuery)
     .then(() => knex.raw(teamsQuery))
-    .then(() => knex('games').insert(tblData.games))
-    .then(() => knex('game_teams').where(delConditions).del())
-    .then(() => knex('game_teams').insert(tblData.game_teams))
-    .then(() => knex('game_team_stats').where(delConditions).del())
-    .then(() => knex('game_team_stats').insert(tblData.game_team_stats))
-    .then(() => knex.raw(playersQuery))
-    .then(() => knex('game_players').where(delConditions).del())
-    .then(() => knex('game_players').insert(tblData.game_players))
-    .then(() => knex('game_player_stats').where(delConditions).del())
-    .then(() => knex('game_player_stats').insert(tblData.game_player_stats))
-    .then(() => knex('game_events').where(delConditions).del())
-    .then(() => knex('game_events').insert(tblData.game_events))
-    .then(() => knex('game_event_players').where(delConditions).del())
-    .then(() => knex('game_event_players').insert(tblData.game_event_players))
-    .then(() => knex('game_shifts').where(delConditions).del())
-    .then(() => knex('game_shifts').insert(tblData.game_shifts))
     .then(() => knex('game_situations').where(delConditions).del())
+    .then(() => knex('game_shifts').where(delConditions).del())
+    .then(() => knex('game_event_players').where(delConditions).del())
+    .then(() => knex('game_events').where(delConditions).del())
+    .then(() => knex('game_player_stats').where(delConditions).del())
+    .then(() => knex('game_players').where(delConditions).del())
+    .then(() => knex('game_team_stats').where(delConditions).del())
+    .then(() => knex('game_teams').where(delConditions).del())
+    .then(() => knex('games').where(delConditions).del())
+    .then(() => knex('games').insert(tblData.games))
+    .then(() => knex('game_teams').insert(tblData.game_teams))
+    .then(() => knex('game_team_stats').insert(tblData.game_team_stats))
+    .then(() => knex('game_players').insert(tblData.game_players))
+    .then(() => knex('game_player_stats').insert(tblData.game_player_stats))
+    .then(() => knex('game_events').insert(tblData.game_events))
+    .then(() => knex('game_event_players').insert(tblData.game_event_players))
+    .then(() => knex('game_shifts').insert(tblData.game_shifts))
     .then(() => knex('game_situations').insert(tblData.game_situations))
     .then(() => 'Rows inserted');
 }

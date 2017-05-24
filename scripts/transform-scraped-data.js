@@ -151,7 +151,7 @@ function createOutEvents(rawEvs, aId, hId) {
         let role = p.playerType.toLowerCase();
         if (outEv.type === 'goal' && role === 'assist') {
           role += i;
-        } else if (['giveaway', 'takeaway'].indexOf(outEv.type) >= 0 && role === 'playerid') {
+        } else if (['giveaway', 'takeaway'].includes(outEv.type) && role === 'playerid') {
           role = `${outEv.type.substring(0, 4)}r`;
         }
 
@@ -207,7 +207,7 @@ function createOutEvents(rawEvs, aId, hId) {
     if (outEv.type === 'penalty' && outEv.penSeverity === 'penalty shot') {
       searchForPenaltyShot = true;
     } else if (searchForPenaltyShot
-      && ['goal', 'shot', 'missed_shot', 'blocked_shot'].indexOf(outEv.type) >= 0) {
+      && ['goal', 'shot', 'missed_shot', 'blocked_shot'].includes(outEv.type)) {
       searchForPenaltyShot = false;
       outEv.isPenShot = true;
     }
@@ -244,7 +244,7 @@ function createOutEvents(rawEvs, aId, hId) {
     }
 
     // Flag misconducts as being ineffective
-    if (pen1.penSeverity.toLowerCase().indexOf('misconduct') >= 0) {
+    if (pen1.penSeverity.toLowerCase().includes('misconduct')) {
       pen1.isEffective = false;
     }
   });
@@ -290,17 +290,19 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
     });
 
   // Fix games that have missing or inaccurate period_end events
-  if ([2015020904, 2014021118, 2013020083, 2013020274, 2013020644, 2013020868].indexOf(gid) >= 0) {
+  if ([2015020904, 2014021118, 2013020083, 2013020274, 2013020644, 2013020868]
+    .includes(gid)) {
     periods.push({
       period: 4,
       duration: 300,
       type: 'overtime',
     });
-  } else if ([2015021188, 2014020833, 2014020886, 2013020115, 2012020179, 2011020259].indexOf(gid) >= 0) {
+  } else if ([2015021188, 2014020833, 2014020886, 2013020115, 2012020179, 2011020259]
+    .includes(gid)) {
     periods.find(prd => prd.period === 4).duration = 300;
-  } else if ([2014030231].indexOf(gid) >= 0) {
+  } else if ([2014030231].includes(gid)) {
     periods.find(prd => prd.period === 1).duration = 1200;
-  } else if ([2012020288].indexOf(gid) >= 0) {
+  } else if ([2012020288].includes(gid)) {
     periods.find(prd => prd.period === 3).duration = 1200;
   }
 
@@ -313,7 +315,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
   periods.filter(prd => prd.type !== 'shootout')
     .forEach((prd) => {
       const prdShots = outEvents.filter(ev => (ev.period === prd.period
-        && ['goal', 'shot', 'missed_shot', 'blocked_shot'].indexOf(ev.type) >= 0));
+        && ['goal', 'shot', 'missed_shot', 'blocked_shot'].includes(ev.type)));
       prd.isHomeDefZoneNeg = isHomeDefZoneNegInPeriod(prdShots);
     });
 
@@ -480,7 +482,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
          * In 2015030143, player 8471724 had 2 shift entries that overlap
          * Avoid recording the same player multiple times
          */
-        if (d[posToUpdate][venIdx].indexOf(sh.pid) < 0) {
+        if (!d[posToUpdate][venIdx].includes(sh.pid)) {
           d[posToUpdate][venIdx].push(sh.pid);
         }
       });
@@ -519,7 +521,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
     const venIdx = outPlayers[pid].venue === 'away' ? 0 : 1;
     const playerIntervals = intervals.filter(d =>
       d.skaters[venIdx].concat(d.goalies[venIdx])
-        .indexOf(parseInt(pid, 10)) >= 0);
+        .includes(parseInt(pid, 10)));
     playerIntervals.forEach(d =>
       (outPlayers[pid][d.strSits[venIdx]][d.scoreSits[venIdx]].toi += 1));
   });
@@ -578,7 +580,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
        */
       let prefixes = ['', ''];
       let suffixes = ['', ''];
-      if (['goal', 'shot', 'missed_shot', 'blocked_shot', 'hit'].indexOf(ev.type) >= 0) {
+      if (['goal', 'shot', 'missed_shot', 'blocked_shot', 'hit'].includes(ev.type)) {
         suffixes = ev.venue === 'away' ? ['f', 'a'] : ['a', 'f'];
       } else if (ev.type === 'penalty') {
         suffixes = ev.venue === 'away' ? ['Taken', 'Drawn'] : ['Drawn', 'Taken'];
@@ -708,24 +710,21 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
    * For each table, create an array of row objects whose property names match db columns
    */
   const resultForDb = {};
-  const outSeason = parseInt(gid.toString().substring(0, 4), 10);
-  const outGid = parseInt(gid.toString().substring(5), 10);
 
   // Create rows for games table - game_date is in UTC
   resultForDb.games = [{
-    season: outSeason,
-    game_id: outGid,
+    game_id: gid,
+    season: parseInt(gid.toString().substring(0, 4), 10),
     game_date: new Date(pbpJson.gameData.datetime.dateTime),
     periods: periods.reduce((max, cur) => (cur.period > max ? cur.period : max), 0),
     has_shootout: !!periods.find(prd => prd.type === 'shootout'),
-    is_playoff: outGid > 30000,
+    is_playoff: gid > 30000,
   }];
 
   // Create rows for game_teams table - 'score' includes shootout result
   resultForDb.game_teams = Object.keys(outTeams).map(venue => ({
     venue,
-    season: outSeason,
-    game_id: outGid,
+    game_id: gid,
     team_id: outTeams[venue].id,
     score: pbpJson.liveData.linescore.teams[venue].goals,
   }));
@@ -736,8 +735,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
     outStrSits.forEach((strSit) => {
       outScoreSits.forEach((scoreSit) => {
         const row = {
-          season: outSeason,
-          game_id: outGid,
+          game_id: gid,
           team_id: outTeams[venue].id,
           strength_sit: strSit,
           score_sit: parseInt(scoreSit, 10),
@@ -771,7 +769,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
         // Only record rows with at least 1 non-zero value
         let rowSum = 0;
         Object.keys(row)
-          .filter(prop => ['season', 'game_id', 'team', 'strength_sit', 'score_sit'].indexOf(prop) < 0)
+          .filter(prop => !['game_id', 'team', 'strength_sit', 'score_sit'].includes(prop))
           .forEach(prop => (rowSum += row[prop]));
         if (rowSum > 0) {
           resultForDb.game_team_stats.push(row);
@@ -796,8 +794,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
 
   // Create rows for game_players table
   resultForDb.game_players = Object.keys(outPlayers).map(pid => ({
-    season: outSeason,
-    game_id: outGid,
+    game_id: gid,
     player_id: parseInt(pid, 10),
     team_id: outPlayers[pid].team,
     jersey: outPlayers[pid].jersey,
@@ -810,8 +807,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
     outStrSits.forEach((strSit) => {
       outScoreSits.forEach((scoreSit) => {
         const row = {
-          season: outSeason,
-          game_id: outGid,
+          game_id: gid,
           player_id: pid,
           strength_sit: strSit,
           score_sit: parseInt(scoreSit, 10),
@@ -869,7 +865,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
         // Only record rows with at least 1 non-zero value
         let rowSum = 0;
         Object.keys(row)
-          .filter(prop => ['season', 'game_id', 'player_id', 'strength_sit', 'score_sit'].indexOf(prop) < 0)
+          .filter(prop => !['game_id', 'player_id', 'strength_sit', 'score_sit'].includes(prop))
           .forEach(prop => (rowSum += row[prop]));
         if (rowSum > 0) {
           resultForDb.game_player_stats.push(row);
@@ -880,8 +876,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
 
   // Create rows for game_events table
   resultForDb.game_events = outEvents.map(ev => ({
-    season: outSeason,
-    game_id: outGid,
+    game_id: gid,
     event_id: ev.id,
     period: ev.period,
     period_type: ev.periodType,
@@ -922,8 +917,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
       ev.skaters[0].concat(ev.skaters[1], ev.goalies[0], ev.goalies[1])
         .forEach((pid) => {
           evRows.push({
-            season: outSeason,
-            game_id: outGid,
+            game_id: gid,
             event_id: ev.id,
             player_id: pid,
             on_ice: true,
@@ -938,8 +932,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
             existingRow.role = r.role;
           } else {
             evRows.push({
-              season: outSeason,
-              game_id: outGid,
+              game_id: gid,
               event_id: ev.id,
               player_id: r.player,
               on_ice: false,
@@ -963,8 +956,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
       }
 
       resultForDb.game_shifts.push({
-        season: outSeason,
-        game_id: outGid,
+        game_id: gid,
         player_id: pid,
         period: prd.period,
         shifts: shifts.sort((a, b) => a.start - b.start)
@@ -1013,8 +1005,7 @@ module.exports.transformData = function transformData(pbpJson, shiftJson) {
           if (timeranges.length > 0) {
             resultForDb.game_situations.push({
               timeranges,
-              season: outSeason,
-              game_id: outGid,
+              game_id: gid,
               team_id: outTeams[venue].id,
               strength_sit: strSit,
               score_sit: scoreSit,

@@ -3,11 +3,18 @@ const express = require('express');
 const server = express();
 const port = 5000;
 
-// A simple route
-server.get('/api', (req, res) => res.status(200).send('Hello world!'));
+// Allow cross-origin requests for development
+if (process.env.NODE_ENV === 'development') {
+  console.log('Allowing cross-origin requests');
+  server.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+    next();
+  });
+}
 
-// An imported router
-server.use('/api/players/', require('./players/router'));
+// Import routes
+server.use('/api/skaters/', require('./skaters/router'));
 
 // Listen for requests
 server.listen(port, (error) => {

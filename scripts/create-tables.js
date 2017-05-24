@@ -26,32 +26,27 @@ const teamsPromise = knex.schema.createTableIfNotExists('teams', (tbl) => {
 });
 
 const gamesPromise = knex.schema.createTableIfNotExists('games', (tbl) => {
+  tbl.integer('game_id').notNullable().primary();
   tbl.specificType('season', 'smallint').notNullable();
-  tbl.integer('game_id').notNullable();
   tbl.timestamp('game_date').notNullable();
   tbl.specificType('periods', 'smallint').notNullable();
   tbl.boolean('is_playoff').notNullable();
   tbl.boolean('has_shootout').notNullable();
-
-  // Relationships
-  tbl.primary(['season', 'game_id']);
 });
 
 const gameTeamsPromise = knex.schema.createTableIfNotExists('game_teams', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('team_id', 'smallint').notNullable();
   tbl.string('venue').notNullable();
   tbl.specificType('score', 'smallint').notNullable();
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'team_id']);
+  tbl.primary(['game_id', 'team_id']);
   tbl.foreign('team_id').references('teams.team_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameRostersPromise = knex.schema.createTableIfNotExists('game_players', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('player_id').notNullable();
   tbl.integer('team_id', 'smallint').notNullable();
@@ -61,14 +56,13 @@ const gameRostersPromise = knex.schema.createTableIfNotExists('game_players', (t
   tbl.string('position');
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'player_id']);
+  tbl.primary(['game_id', 'player_id']);
   tbl.foreign('player_id').references('players.player_id');
   tbl.foreign('team_id').references('teams.team_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameEventsPromise = knex.schema.createTableIfNotExists('game_events', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('event_id').notNullable();
   tbl.specificType('period', 'smallint');
@@ -100,13 +94,12 @@ const gameEventsPromise = knex.schema.createTableIfNotExists('game_events', (tbl
   tbl.specificType('h_goalies', 'smallint');
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'event_id']);
+  tbl.primary(['game_id', 'event_id']);
   tbl.foreign('team_id').references('teams.team_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameEventPlayersPromise = knex.schema.createTableIfNotExists('game_event_players', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('event_id').notNullable();
   tbl.integer('player_id').notNullable();
@@ -114,14 +107,12 @@ const gameEventPlayersPromise = knex.schema.createTableIfNotExists('game_event_p
   tbl.string('role');
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'event_id', 'player_id']);
+  tbl.primary(['game_id', 'event_id', 'player_id']);
   tbl.foreign('player_id').references('players.player_id');
-  tbl.foreign(['season', 'game_id', 'event_id'])
-    .references(['game_events.season', 'game_events.game_id', 'game_events.event_id']);
+  tbl.foreign(['game_id', 'event_id']).references(['game_events.game_id', 'game_events.event_id']);
 });
 
 const gamePlayerStatsPromise = knex.schema.createTableIfNotExists('game_player_stats', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('player_id').notNullable();
   tbl.string('strength_sit').notNullable();
@@ -175,13 +166,12 @@ const gamePlayerStatsPromise = knex.schema.createTableIfNotExists('game_player_s
   tbl.specificType('icing_drawn', 'smallint');
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'player_id', 'strength_sit', 'score_sit']);
+  tbl.primary(['game_id', 'player_id', 'strength_sit', 'score_sit']);
   tbl.foreign('player_id').references('players.player_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameTeamStatsPromise = knex.schema.createTableIfNotExists('game_team_stats', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('team_id', 'smallint').notNullable();
   tbl.string('strength_sit').notNullable();
@@ -213,13 +203,12 @@ const gameTeamStatsPromise = knex.schema.createTableIfNotExists('game_team_stats
   tbl.specificType('icing_drawn', 'smallint');
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'team_id', 'strength_sit', 'score_sit']);
+  tbl.primary(['game_id', 'team_id', 'strength_sit', 'score_sit']);
   tbl.foreign('team_id').references('teams.team_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameShiftsPromise = knex.schema.createTableIfNotExists('game_shifts', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('player_id').notNullable();
   tbl.specificType('period', 'smallint').notNullable();
@@ -228,13 +217,12 @@ const gameShiftsPromise = knex.schema.createTableIfNotExists('game_shifts', (tbl
   tbl.specificType('shifts', 'integer[][2]').notNullable();
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'player_id', 'period']);
+  tbl.primary(['game_id', 'player_id', 'period']);
   tbl.foreign('player_id').references('players.player_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 const gameSituationsPromise = knex.schema.createTableIfNotExists('game_situations', (tbl) => {
-  tbl.specificType('season', 'smallint').notNullable();
   tbl.integer('game_id').notNullable();
   tbl.integer('team_id', 'smallint').notNullable();
   tbl.string('strength_sit').notNullable();
@@ -245,9 +233,9 @@ const gameSituationsPromise = knex.schema.createTableIfNotExists('game_situation
   tbl.specificType('timeranges', 'integer[][2]').notNullable();
 
   // Relationships
-  tbl.primary(['season', 'game_id', 'team_id', 'strength_sit', 'score_sit', 'period']);
+  tbl.primary(['game_id', 'team_id', 'strength_sit', 'score_sit', 'period']);
   tbl.foreign('team_id').references('teams.team_id');
-  tbl.foreign(['season', 'game_id']).references(['games.season', 'games.game_id']);
+  tbl.foreign('game_id').references('games.game_id');
 });
 
 /**

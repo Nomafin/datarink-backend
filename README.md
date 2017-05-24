@@ -10,3 +10,7 @@ Revamped backend for datarink
 6. Populate database using `scrape-games.js`. For example, `node scrape-games.js 2016 20001-21230 save`.
     - Use the `save` flag to save the downloaded json files. Replace this flag with `local` to use local files. If `local` is specified but a file is not found, it will be downloaded and saved.
     - `save` and `local` will save and load data from `/scripts/raw-data/`. **The `raw-data` folder needs to be created before running the scraper.**
+
+## Usage
+- Use `npm run dev` to allow cross-origin requests for local development.
+- To lint JavaScript, run `npm run lint`.
