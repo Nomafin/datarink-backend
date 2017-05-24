@@ -44,6 +44,7 @@ function parseTime(htmlString) {
 // Use the html pbp to append plays to json pbp
 function createJsonPlays(htmlPbp, jsonPbp) {
   const $ = cheerio.load(htmlPbp);
+  const json = JSON.parse(jsonPbp);
 
   /**
    * Given an array of <font> elements (used to list on-ice players in the html pbp),
@@ -96,9 +97,11 @@ function createJsonPlays(htmlPbp, jsonPbp) {
        * replace multiple spaces with a single space
        */
       desc: $(tds[5]).html()
-        .split('<br>').join(' ')
-        .split('&#xA0;').join(' ')
-        .replace(/  +/g, ' ')
+        .split('<br>')
+        .join(' ')
+        .split('&#xA0;')
+        .join(' ')
+        .replace(/ +/g, ' ')
         .trim(),
     });
   });
@@ -129,7 +132,7 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       zone = 'n';
     }
 
-    if (!zone || !ev.hasOwnProperty('team')) {
+    if (!zone || !Object.hasOwnProperty.call(ev, 'team')) {
       return;
     }
 
@@ -150,6 +153,28 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     }
   });
 
+  // Get players from json
+  const players = [];
+  ['away', 'home'].forEach((ven) => {
+    const team = json.liveData.boxscore.teams[ven].team.abbreviation.toLowerCase();
+    Object.keys(json.liveData.boxscore.teams[ven].players).forEach((key) => {
+      const rawPlayer = json.liveData.boxscore.teams[ven].players[key];
+      const player = {
+        team,
+        id: rawPlayer.person.id,
+        name: rawPlayer.person.fullName,
+        position: rawPlayer.position.code.toLowerCase().replace('/', ''),
+      };
+
+      if (Object.hasOwnProperty.call(rawPlayer, 'jerseyNumber')) {
+        player.jersey = parseInt(rawPlayer.jerseyNumber, 10);
+      }
+
+      players.push(player);
+    });
+  });
+
+  console.log(players);
   console.log(htmlPlays);
 }
 
