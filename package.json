@@ -14,12 +14,14 @@
     "lint": "./node_modules/.bin/eslint . --ext .js; exit 0;"
   },
   "dependencies": {
+    "cheerio": "^0.22.0",
     "express": "^4.15.2",
     "knex": "^0.12.9",
     "pg": "^6.1.5",
     "request": "^2.81.0"
   },
   "devDependencies": {
+    "cheerio": "^0.22.0",
     "eslint": "^3.17.1",
     "eslint-config-airbnb-base": "^11.1.1",
     "eslint-plugin-import": "^2.2.0"
