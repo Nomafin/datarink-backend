@@ -40,29 +40,12 @@ function parseTime(htmlString) {
   return (60 * arr[0]) + arr[1];
 }
 
-
 // Use the html pbp to append plays to json pbp
 function createJsonPlays(htmlPbp, jsonPbp) {
   const $ = cheerio.load(htmlPbp);
   const json = JSON.parse(jsonPbp);
 
-  /**
-   * Given an array of <font> elements (used to list on-ice players in the html pbp),
-   * return an array of players
-   */
-  function getOnIcePlayers(fontEls) {
-    const players = [];
-    fontEls.each((idx, el) => {
-      players.push({
-        name: $(el).attr('title').split(' - ')[1],
-        position: $(el).attr('title').split(' - ')[0],
-        jersey: parseInt($(el).text(), 10),
-      });
-    });
-    return players;
-  }
-
-  // Mapping html play types -> json play types
+  // Map html play types -> json play types
   const typeMap = {
     pstr: 'period_start',
     pend: 'period_end',
@@ -76,6 +59,7 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     take: 'takeaway',
     give: 'giveaway',
     hit: 'hit',
+    penl: 'penalty',
   };
 
   // For each tr element, add a play object to htmlPlays
@@ -88,8 +72,6 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       period: parseInt($(tds[1]).text(), 10),
       time: parseTime($(tds[3]).html()),
       type: typeMap[$(tds[4]).text().toLowerCase()],
-      aOnIce: getOnIcePlayers($(tds[6]).find('font')),
-      hOnIce: getOnIcePlayers($(tds[7]).find('font')),
 
       /**
        * Clean up whitespace
@@ -174,8 +156,132 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     });
   });
 
-  console.log(players);
-  console.log(htmlPlays);
+  // Get roles for each event
+  htmlPlays.forEach((ev) => {
+    if (!['hit', 'faceoff', 'penalty', 'goal', 'shot', 'missed_shot', 'blocked_shot']
+      .includes(ev.type)) {
+      return;
+    }
+
+    // Regex to find entries like 'tor #3', 'ott #51', 'l.a #2'
+    const re = /... #\d+/gi;
+
+    // Get players for each event - players are stored as 'tor #3'
+    ev.players = [];
+    if (ev.type === 'hit') {
+      // The hitter is listed first, the hittee second
+      const substrs = ev.desc.toLowerCase().split(' hit ');
+      ev.players.push({
+        playerType: 'hitter',
+        player: substrs[0].match(re)[0],
+      });
+      ev.players.push({
+        playerType: 'hittee',
+        player: substrs[1].match(re)[0],
+      });
+    } else if (ev.type === 'blocked_shot') {
+      // The shooter is listed first, the blocker second
+      const substrs = ev.desc.toLowerCase().split(' blocked by ');
+      ev.players.push({
+        playerType: 'shooter',
+        player: substrs[0].match(re)[0],
+      });
+      ev.players.push({
+        playerType: 'blocker',
+        player: substrs[1].match(re)[0],
+      });
+    } else if (ev.type === 'missed_shot') {
+      ev.players.push({
+        playerType: 'shooter',
+        player: ev.desc.toLowerCase().match(re)[0],
+      });
+    } else if (ev.type === 'shot') {
+      const jerseyRe = /#\d+/gi;
+      const jersey = ev.desc.toLowerCase().match(jerseyRe)[0];
+      ev.players.push({
+        playerType: 'shooter',
+        player: `${ev.team} ${jersey}`,
+      });
+    } else if (ev.type === 'faceoff') {
+      // Away player is always listed first
+      const substrs = ev.desc.toLowerCase().split(' vs ');
+      ev.players.push({
+        playerType: ev.team === teams[0] ? 'winner' : 'loser',
+        player: substrs[0].match(re)[0],
+      });
+      ev.players.push({
+        playerType: ev.team === teams[1] ? 'winner' : 'loser',
+        player: substrs[1].match(re)[0],
+      });
+    } else if (ev.type === 'goal') {
+      const substrs = ev.desc.toLowerCase().split(' assists: ');
+      ev.players.push({
+        playerType: 'scorer',
+        player: ev.desc.toLowerCase().match(re)[0],
+      });
+
+      // Get assisters
+      if (substrs.length === 2) {
+        const jerseyRe = /#\d+/gi;
+        substrs[1].match(jerseyRe).forEach((jer, i) => (ev.players.push({
+          playerType: `assist${i + 1}`,
+          player: `${ev.team} ${jer}`,
+        })));
+      }
+    } else if (ev.type === 'penalty') {
+      /**
+       * Get the content between the 1st and 2nd spaces
+       * If a player took the penalty, then it will return '#XX'
+       * If a team took the penalty, then it will return 'TEAM'
+       */
+      const testStr = ev.desc.toLowerCase().split(' ')[1];
+      if (testStr.includes('#')) {
+        ev.players.push({
+          playerType: 'penaltyon',
+          player: `${ev.team} ${testStr}`,
+        });
+      }
+
+      // Get player who served penalty
+      const servedRe = / served by: #\d+/gi;
+      const servedMatch = ev.desc.toLowerCase().match(servedRe);
+      if (servedMatch) {
+        const servedBy = servedMatch[0].replace('served by: ', '').trim();
+        ev.players.push({
+          playerType: 'servedby',
+          player: `${ev.team} ${servedBy}`,
+        });
+      }
+
+      // Get player who drew penalty
+      const drewRe = / drawn by: #\d+/gi;
+      const drewMatch = ev.desc.toLowerCase().match(drewRe);
+      if (drewMatch) {
+        const drewBy = drewMatch[0].replace('drawn by: ', '').trim();
+        ev.players.push({
+          playerType: 'drewby',
+          player: `${ev.team} ${drewBy}`,
+        });
+      }
+    }
+  });
+
+  // Replace players ('tor #3') with player ids
+  htmlPlays
+    .filter(ev => Object.hasOwnProperty.call(ev, 'players'))
+    .forEach((ev) => {
+      ev.players = ev.players.map((p) => {
+        const pTeam = p.player.split(' ')[0];
+        const pJersey = parseInt(p.player.split('#')[1], 10);
+        const jsonPlayer = players.find(d => d.team === pTeam && d.jersey === pJersey);
+        return {
+          playerType: p.playerType,
+          pid: jsonPlayer.id,
+        };
+      });
+    });
+
+  // TODO: Penalty type, severity, minutes
 }
 
 Promise.all(promises)
