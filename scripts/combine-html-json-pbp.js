@@ -33,7 +33,7 @@ const promises = [htmlUrl, jsonUrl].map(url => (
   })
 ));
 
-// Convert a "0:00<br>20:00" string to elapsed time in seconds
+// Given a '0:00<br>20:00' string, return the elapsed time in seconds
 function parseTime(htmlString) {
   const elapsedMmss = htmlString.split('<br>')[0];
   const arr = elapsedMmss.split(':').map(str => parseInt(str, 10));
@@ -44,6 +44,32 @@ function parseTime(htmlString) {
 function createJsonPlays(htmlPbp, jsonPbp) {
   const $ = cheerio.load(htmlPbp);
   const json = JSON.parse(jsonPbp);
+
+  // Get players from rosters in json
+  const players = [];
+  ['away', 'home'].forEach((ven) => {
+    const team = json.liveData.boxscore.teams[ven].team.abbreviation.toLowerCase();
+    Object.keys(json.liveData.boxscore.teams[ven].players).forEach((key) => {
+      const rawPlayer = json.liveData.boxscore.teams[ven].players[key];
+      const player = {
+        team,
+        id: rawPlayer.person.id,
+        name: rawPlayer.person.fullName,
+        position: rawPlayer.position.code.toLowerCase().replace('/', ''),
+      };
+
+      if (Object.hasOwnProperty.call(rawPlayer, 'jerseyNumber')) {
+        player.jersey = parseInt(rawPlayer.jerseyNumber, 10);
+      }
+
+      players.push(player);
+    });
+  });
+
+  // Get [away, home] team abbreviations from the '### On Ice' table headings
+  const teamTds = $('td.heading.bborder[width="10%"]');
+  const teams = [teamTds[0], teamTds[1]]
+    .map(td => $(td).text().split(' On Ice')[0].toLowerCase());
 
   // Map html play types -> json play types
   const typeMap = {
@@ -88,12 +114,19 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     });
   });
 
-  // Store lowercased description for searches
+  // Store lowercase description for searches
   htmlPlays.forEach(ev => (ev.descLow = ev.desc.toLowerCase()));
 
-  // Get [away, home] team abbreviations from the '### On Ice' table headings
-  const tds = $('td.heading.bborder[width="10%"]');
-  const teams = [tds[0], tds[1]].map(td => $(td).text().split(' On Ice')[0].toLowerCase());
+  // Get period type: regular, overtime, shootout
+  htmlPlays.forEach((ev) => {
+    if (ev.period <= 3) {
+      ev.periodType = 'regular';
+    } else if (ev.period === 4) {
+      ev.periodType = 'overtime';
+    } else {
+      ev.periodType = gid < 30000 ? 'shootout' : 'overtime';
+    }
+  });
 
   /**
    * Attribute event to a team
@@ -108,12 +141,12 @@ function createJsonPlays(htmlPbp, jsonPbp) {
 
   // Append zones to each event
   htmlPlays.forEach((ev) => {
-    let zone;
-    if (ev.descLow.includes('Def. Zone')) {
+    let zone = '';
+    if (ev.descLow.includes('def. zone')) {
       zone = 'd';
-    } else if (ev.descLow.includes('Off. Zone')) {
+    } else if (ev.descLow.includes('off. zone')) {
       zone = 'o';
-    } else if (ev.descLow.includes('Neu. Zone')) {
+    } else if (ev.descLow.includes('neu. zone')) {
       zone = 'n';
     }
 
@@ -136,27 +169,6 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     if (ev.type === 'block') {
       ev.zones.reverse();
     }
-  });
-
-  // Get players from json
-  const players = [];
-  ['away', 'home'].forEach((ven) => {
-    const team = json.liveData.boxscore.teams[ven].team.abbreviation.toLowerCase();
-    Object.keys(json.liveData.boxscore.teams[ven].players).forEach((key) => {
-      const rawPlayer = json.liveData.boxscore.teams[ven].players[key];
-      const player = {
-        team,
-        id: rawPlayer.person.id,
-        name: rawPlayer.person.fullName,
-        position: rawPlayer.position.code.toLowerCase().replace('/', ''),
-      };
-
-      if (Object.hasOwnProperty.call(rawPlayer, 'jerseyNumber')) {
-        player.jersey = parseInt(rawPlayer.jerseyNumber, 10);
-      }
-
-      players.push(player);
-    });
   });
 
   // Get roles for each event
