@@ -88,6 +88,9 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     });
   });
 
+  // Store lowercased description for searches
+  htmlPlays.forEach(ev => (ev.descLow = ev.desc.toLowerCase()));
+
   // Get [away, home] team abbreviations from the '### On Ice' table headings
   const tds = $('td.heading.bborder[width="10%"]');
   const teams = [tds[0], tds[1]].map(td => $(td).text().split(' On Ice')[0].toLowerCase());
@@ -97,7 +100,7 @@ function createJsonPlays(htmlPbp, jsonPbp) {
    * Don't make adjustments for blocked shots - scrape-games.js will do it
    */
   htmlPlays.forEach((ev) => {
-    const firstWord = ev.desc.split(' ')[0].toLowerCase();
+    const firstWord = ev.descLow.split(' ')[0];
     if (teams.includes(firstWord)) {
       ev.team = firstWord;
     }
@@ -106,11 +109,11 @@ function createJsonPlays(htmlPbp, jsonPbp) {
   // Append zones to each event
   htmlPlays.forEach((ev) => {
     let zone;
-    if (ev.desc.includes('Def. Zone')) {
+    if (ev.descLow.includes('Def. Zone')) {
       zone = 'd';
-    } else if (ev.desc.includes('Off. Zone')) {
+    } else if (ev.descLow.includes('Off. Zone')) {
       zone = 'o';
-    } else if (ev.desc.includes('Neu. Zone')) {
+    } else if (ev.descLow.includes('Neu. Zone')) {
       zone = 'n';
     }
 
@@ -164,13 +167,13 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     }
 
     // Regex to find entries like 'tor #3', 'ott #51', 'l.a #2'
-    const re = /... #\d+/gi;
+    const re = /... #\d+/g;
 
     // Get players for each event - players are stored as 'tor #3'
     ev.players = [];
     if (ev.type === 'hit') {
       // The hitter is listed first, the hittee second
-      const substrs = ev.desc.toLowerCase().split(' hit ');
+      const substrs = ev.descLow.split(' hit ');
       ev.players.push({
         playerType: 'hitter',
         player: substrs[0].match(re)[0],
@@ -181,7 +184,7 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       });
     } else if (ev.type === 'blocked_shot') {
       // The shooter is listed first, the blocker second
-      const substrs = ev.desc.toLowerCase().split(' blocked by ');
+      const substrs = ev.descLow.split(' blocked by ');
       ev.players.push({
         playerType: 'shooter',
         player: substrs[0].match(re)[0],
@@ -193,18 +196,18 @@ function createJsonPlays(htmlPbp, jsonPbp) {
     } else if (ev.type === 'missed_shot') {
       ev.players.push({
         playerType: 'shooter',
-        player: ev.desc.toLowerCase().match(re)[0],
+        player: ev.descLow.match(re)[0],
       });
     } else if (ev.type === 'shot') {
-      const jerseyRe = /#\d+/gi;
-      const jersey = ev.desc.toLowerCase().match(jerseyRe)[0];
+      const jerseyRe = /#\d+/g;
+      const jersey = ev.descLow.match(jerseyRe)[0];
       ev.players.push({
         playerType: 'shooter',
         player: `${ev.team} ${jersey}`,
       });
     } else if (ev.type === 'faceoff') {
       // Away player is always listed first
-      const substrs = ev.desc.toLowerCase().split(' vs ');
+      const substrs = ev.descLow.split(' vs ');
       ev.players.push({
         playerType: ev.team === teams[0] ? 'winner' : 'loser',
         player: substrs[0].match(re)[0],
@@ -214,15 +217,15 @@ function createJsonPlays(htmlPbp, jsonPbp) {
         player: substrs[1].match(re)[0],
       });
     } else if (ev.type === 'goal') {
-      const substrs = ev.desc.toLowerCase().split(' assists: ');
+      const substrs = ev.descLow.split(' assists: ');
       ev.players.push({
         playerType: 'scorer',
-        player: ev.desc.toLowerCase().match(re)[0],
+        player: ev.descLow.match(re)[0],
       });
 
       // Get assisters
       if (substrs.length === 2) {
-        const jerseyRe = /#\d+/gi;
+        const jerseyRe = /#\d+/g;
         substrs[1].match(jerseyRe).forEach((jer, i) => (ev.players.push({
           playerType: `assist${i + 1}`,
           player: `${ev.team} ${jer}`,
@@ -234,7 +237,7 @@ function createJsonPlays(htmlPbp, jsonPbp) {
        * If a player took the penalty, then it will return '#XX'
        * If a team took the penalty, then it will return 'TEAM'
        */
-      const testStr = ev.desc.toLowerCase().split(' ')[1];
+      const testStr = ev.descLow.split(' ')[1];
       if (testStr.includes('#')) {
         ev.players.push({
           playerType: 'penaltyon',
@@ -243,8 +246,8 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       }
 
       // Get player who served penalty
-      const servedRe = / served by: #\d+/gi;
-      const servedMatch = ev.desc.toLowerCase().match(servedRe);
+      const servedRe = / served by: #\d+/g;
+      const servedMatch = ev.descLow.match(servedRe);
       if (servedMatch) {
         const servedBy = servedMatch[0].replace('served by: ', '').trim();
         ev.players.push({
@@ -254,8 +257,8 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       }
 
       // Get player who drew penalty
-      const drewRe = / drawn by: #\d+/gi;
-      const drewMatch = ev.desc.toLowerCase().match(drewRe);
+      const drewRe = / drawn by: #\d+/g;
+      const drewMatch = ev.descLow.match(drewRe);
       if (drewMatch) {
         const drewBy = drewMatch[0].replace('drawn by: ', '').trim();
         ev.players.push({
@@ -281,7 +284,37 @@ function createJsonPlays(htmlPbp, jsonPbp) {
       });
     });
 
-  // TODO: Penalty type, severity, minutes
+  // Append penalty properties
+  htmlPlays
+    .filter(ev => ev.type === 'penalty')
+    .forEach((ev) => {
+      // Get penalty duration (penalty shots have 0)
+      const re = /\(\d+ min\)/g;
+      let penMins = ev.descLow.match(re)[0]
+        .replace('(', '')
+        .replace(' min)', '');
+      penMins = parseInt(penMins, 10);
+      ev.penMins = penMins;
+
+      // Get penalty severity
+      if (penMins === 0) {
+        ev.penSeverity = 'penalty shot';
+      } else if (penMins === 2) {
+        ev.penSeverity = ev.descLow.includes('(bench') ? 'bench minor' : 'minor';
+      } else if (penMins === 4) {
+        ev.penSeverity = 'minor';
+      } else if (penMins === 5) {
+        ev.penSeverity = 'major';
+      } else if (penMins === 10) {
+        if (ev.descLow.includes('game misconduct')) {
+          ev.penSeverity = 'game misconduct';
+        } else if (ev.descLow.includes('misconduct')) {
+          ev.penSeverity = 'misconduct';
+        } else if (ev.descLow.includes('match penalty')) {
+          ev.penSeverity = 'match';
+        }
+      }
+    });
 }
 
 Promise.all(promises)
