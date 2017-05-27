@@ -180,7 +180,8 @@ function createJsonPlays(htmlPbp, jsonPbp) {
 
   // Get roles for each event - store players as 'tor #3'
   htmlPlays.filter(ev =>
-    ['hit', 'faceoff', 'penalty', 'goal', 'shot', 'missed_shot', 'blocked_shot'].includes(ev.type))
+    ['hit', 'faceoff', 'penalty', 'goal', 'shot', 'missed_shot', 'blocked_shot', 'giveaway', 'takeaway']
+    .includes(ev.type))
     .forEach((ev) => {
       // Regular expression to match 'tor #3', 'ott #51', 'l.a #2', etc.
       const re = /... #\d+/g;
@@ -216,6 +217,12 @@ function createJsonPlays(htmlPbp, jsonPbp) {
         const jersey = ev.descLow.match(/#\d+/g)[0];
         ev.players.push({
           playerType: 'shooter',
+          player: `${ev.team} ${jersey}`,
+        });
+      } else if (ev.type === 'give' || ev.type === 'take') {
+        const jersey = ev.descLow.match(/#\d+/g)[0];
+        ev.players.push({
+          playerType: 'playerid',
           player: `${ev.team} ${jersey}`,
         });
       } else if (ev.type === 'faceoff') {
